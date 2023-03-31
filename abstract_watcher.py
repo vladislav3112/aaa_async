@@ -25,10 +25,11 @@ class AbstractRegistrator(abc.ABC):
     Сохраняет результаты работы завершенных задач.
     В тестах мы передадим в ваш Watcher нашу реализацию Registrator и проверим корректность сохранения результатов.
     """
+
     def __init__(self):
         self.values = []
         self.errors = []
-    
+
     @abc.abstractmethod
     def register_value(self, value: Any) -> None:
         # Store values returned from done task
@@ -57,24 +58,17 @@ class StudentWatcher(AbstractWatcher):
 
     async def start(self) -> None:
         pass
-    
-    async def start_task(self) -> None:
-        pass
-    
+
     async def stop(self) -> None:
-        # Your code goes here
-        print('all tasks ', asyncio.all_tasks())
-        # Your code goes here
-        print('starting all tasks')
-        
-        for task in self.running_tasks:
+        async def one_task_handler(task):
             try:
                 res = await task
-                print('task res', res)
                 self.registrator.register_value(res)
             except ValueError as e:
-                print('task error', res)
                 self.registrator.register_error(e)
+
+        coros = [one_task_handler(task) for task in self.running_tasks]
+        await asyncio.gather(*coros)
 
         self.running_tasks = []
 
