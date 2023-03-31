@@ -1,5 +1,6 @@
 import abc
 from typing import Coroutine, Any
+import asyncio
 
 """
 Описание задачи:
@@ -24,16 +25,19 @@ class AbstractRegistrator(abc.ABC):
     Сохраняет результаты работы завершенных задач.
     В тестах мы передадим в ваш Watcher нашу реализацию Registrator и проверим корректность сохранения результатов.
     """
-
+    def __init__(self):
+        self.values = []
+        self.errors = []
+    
     @abc.abstractmethod
     def register_value(self, value: Any) -> None:
         # Store values returned from done task
-        ...
+        self.values.append(value)
 
     @abc.abstractmethod
     def register_error(self, error: BaseException) -> None:
         # Store exceptions returned from done task
-        ...
+        self.errors.append(error)
 
 
 class AbstractWatcher(abc.ABC):
@@ -45,36 +49,34 @@ class AbstractWatcher(abc.ABC):
     def __init__(self, registrator: AbstractRegistrator):
         self.registrator = registrator  # we expect to find registrator here
 
-    @abc.abstractmethod
-    async def start(self) -> None:
-        # Good idea is to implement here all necessary for start watcher :)
-        ...
-
-    @abc.abstractmethod
-    async def stop(self) -> None:
-        # Method will be called on the end of the Watcher's work
-        ...
-
-    @abc.abstractmethod
-    def start_and_watch(self, coro: Coroutine) -> None:
-        # Start new task and put to watching
-        ...
-
 
 class StudentWatcher(AbstractWatcher):
     def __init__(self, registrator: AbstractRegistrator):
         super().__init__(registrator)
-        # Your code goes here
-        ...
+        self.running_tasks = []
 
     async def start(self) -> None:
-        # Your code goes here
-        ...
-
+        pass
+    
+    async def start_task(self) -> None:
+        pass
+    
     async def stop(self) -> None:
         # Your code goes here
-        ...
+        print('all tasks ', asyncio.all_tasks())
+        # Your code goes here
+        print('starting all tasks')
+        
+        for task in self.running_tasks:
+            try:
+                res = await task
+                print('task res', res)
+                self.registrator.register_value(res)
+            except ValueError as e:
+                print('task error', res)
+                self.registrator.register_error(e)
+
+        self.running_tasks = []
 
     def start_and_watch(self, coro: Coroutine) -> None:
-        # Your code goes here
-        ...
+        self.running_tasks.append(coro)
